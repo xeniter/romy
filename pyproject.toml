@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "romy"
+version = "0.0.1"
+authors = [
+  { name="Manuel Dipolt", email="manuel.dipolt@robart.cc" },
+]
+description = "Python program and library to control Wi-Fi enabled ROMY vacuum cleaners"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {file = "LICENSE.md"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Networking"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/xeniter/romy"
+"Bug Tracker" = "https://github.com/xeniter/romy/issues"
+
+[tool.setuptools.package-data]
+"romy" = ["py.typed"]
