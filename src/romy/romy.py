@@ -13,7 +13,7 @@ import requests
 from .utils import async_query, async_query_with_http_status
 
 from collections.abc import Mapping
-from typing import Any, Optional
+from typing import Any
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -39,10 +39,9 @@ class RomyRobot():
         self._model : str = ""
         self._firmware : str = ""
 
-
-        self._battery_level : Optional[int] = None
-        self._fan_speed : Optional[int] = None
-        self._status : Optional[str] = None
+        self._battery_level : None | int = None
+        self._fan_speed : None | int = None
+        self._status : None | str = None
 
     async def _init(self):
 
@@ -168,6 +167,7 @@ class RomyRobot():
         """Start or countinue cleaning."""
         _LOGGER.debug("async_clean_start_or_continue")
         ret, _ = await self.romy_async_query(f"set/clean_start_or_continue?cleaning_parameter_set={self._fan_speed}")
+        return ret
 
     async def async_clean_all(self, **kwargs: Any) -> bool:
         """Start clean all."""
@@ -186,18 +186,13 @@ class RomyRobot():
         ret, _ = await self.romy_async_query("set/go_home")
         return ret
 
-    async def async_set_fan_speed(self, fan_speed: str, **kwargs: Any) -> None:
-        """Set fan speed."""
-        _LOGGER.debug("async_set_fan_speed to %s", fan_speed)
-        if fan_speed in FAN_SPEEDS:
-            self._fan_speed_update = True
-            self._fan_speed = FAN_SPEEDS.index(fan_speed)
-            ret, response = await self.romy_async_query(f"set/switch_cleaning_parameter_set?cleaning_parameter_set={self._fan_speed}")
-            self._fan_speed_update = False
-            if not ret:
+    async def async_set_fan_speed(self, fan_speed: int, **kwargs: Any) -> None:
+        """Set fan speed."""            
+            ret, response = await self.romy_async_query(f"set/switch_cleaning_parameter_set?cleaning_parameter_set={fan_speed}")
+            if ret:
+                self._fan_speed = fan_speed
+            else:
                 _LOGGER.error(" async_set_fan_speed -> async_query response: %s", response)
-        else:
-            _LOGGER.error("No such fan speed available: %d", fan_speed)
 
     async def async_update(self) -> None:
         """Fetch state from the device."""
