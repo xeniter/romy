@@ -106,11 +106,11 @@ class RomyRobot():
         return await async_query(self._host, self._port, command)
 
     @property
-    def is_initialized(self) -> Optional[bool]:
+    def is_initialized(self) -> None | bool:
         """Return true if ROMY is initialized."""
         return self._initialized
     @property
-    def is_unlocked(self) -> Optional[bool]:
+    def is_unlocked(self) -> None | bool:
         """Return true if ROMY's http interface is unlocked."""
         return not self._local_http_interface_is_locked        
 
@@ -188,11 +188,11 @@ class RomyRobot():
 
     async def async_set_fan_speed(self, fan_speed: int, **kwargs: Any) -> None:
         """Set fan speed."""            
-            ret, response = await self.romy_async_query(f"set/switch_cleaning_parameter_set?cleaning_parameter_set={fan_speed}")
-            if ret:
-                self._fan_speed = fan_speed
-            else:
-                _LOGGER.error(" async_set_fan_speed -> async_query response: %s", response)
+        ret, response = await self.romy_async_query(f"set/switch_cleaning_parameter_set?cleaning_parameter_set={fan_speed}")
+        if ret:
+            self._fan_speed = fan_speed
+        else:
+            _LOGGER.error(" async_set_fan_speed -> async_query response: %s", response)
 
     async def async_update(self) -> None:
         """Fetch state from the device."""
