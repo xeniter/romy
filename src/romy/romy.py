@@ -40,7 +40,7 @@ class RomyRobot():
         self._firmware : str = ""
 
         self._battery_level : None | int = None
-        self._fan_speed : None | int = None
+        self._fan_speed : int = 0
         self._status : None | str = None
 
     async def _init(self):
