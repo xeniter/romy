@@ -17,6 +17,8 @@ from typing import Any
 
 _LOGGER = logging.getLogger(__name__)
 
+supported_binary_sensors = ["dustbin", "dock", "water_tank", "water_tank_empty"]
+
 async def create_romy(host: str, password:str):
     romy = RomyRobot(host, password)
     return await romy._init()
@@ -42,6 +44,8 @@ class RomyRobot():
         self._battery_level : None | int = None
         self._fan_speed : int = 0
         self._status : None | str = None
+        self._binary_sensors : Dict[str, bool] = {}
+
 
     async def _init(self):
 
@@ -97,7 +101,24 @@ class RomyRobot():
             _LOGGER.info("ROMY is reachable under %s", self._host)
         else:
             _LOGGER.error("ROMY is not reachable under %s", self._host)
+
         
+        # fetch information which binary sensors are present and add it in case
+        ret, response = await self.romy_async_query("get/sensor_status")
+        if ret:
+            status = json.loads(response)
+            hal_status = status["hal_status"]
+            for sensor in hal_status["sensor_list"]:
+                for supported_binary_sensor in supported_binary_sensors:
+                    if sensor["is_registered"] == 1 and sensor["device_descriptor"] == supported_binary_sensor:
+                        self._binary_sensors[supported_binary_sensor] = False
+        else:
+            _LOGGER.error("Error fetching sensor status resp: %s", response)
+        
+        _LOGGER.info("Your ROMY offers following sensors: %s", self._binary_sensors)
+
+        await self.async_update()
+
         return self
 
     async def romy_async_query(self, command: str) -> tuple[bool, str]:
@@ -117,7 +138,7 @@ class RomyRobot():
 
     @property
     def name(self) -> str:
-        """Return the name of the device."""
+        """Return the name of your ROMY."""
         return self._name
 
     async def set_name(self, new_name) -> None:
@@ -134,34 +155,39 @@ class RomyRobot():
 
     @property
     def unique_id(self) -> str:
-        """Return the name of the device."""
+        """Return the name of your ROMY."""
         return self._unique_id
 
     @property
     def model(self) -> str:
-        """Return the model of the device."""
+        """Return the model of your ROMY."""
         return self._model
 
     @property
     def firmware(self) -> str:
-        """Return the firmware of the device."""
+        """Return the firmware of your ROMY."""
         return self._firmware
 
 
     @property
     def fan_speed(self) -> int:
-        """Return the current fan speed of the vacuum cleaner."""
+        """Return the current fan speed of your ROMY."""
         return self._fan_speed
 
     @property
     def battery_level(self) -> int | None:
-        """Return the battery level of the vacuum cleaner."""
+        """Return the battery level of your ROMY."""
         return self._battery_level
 
     @property
     def status(self) -> str | None:
-        """Return the status of the vacuum cleaner."""
+        """Return the status of your ROMY."""
         return self._status
+
+    @property
+    def binary_sensors(self) -> list[str]:
+        """Return the available sensors of your ROMY."""
+        return self._binary_sensors
 
     async def get_protocol_version(self, **kwargs: Any) -> str:
         """Get http api version."""
@@ -220,5 +246,20 @@ class RomyRobot():
         else:
             _LOGGER.error("FOMY function async_update -> async_query response: %s", response)
 
-
+        # update sensor values
+        ret, response = await self.romy_async_query("get/sensor_values")
+        if ret:
+            sensor_values = json.loads(response)
+            for sensor in sensor_values["sensor_data"]:
+                if sensor["device_type"] == "gpio":
+                    gpio_sensors = sensor["sensor_data"]
+                    for gpio_sensor in gpio_sensors:
+                        for supported_binary_sensor in supported_binary_sensors:
+                            if gpio_sensor["device_descriptor"] == supported_binary_sensor:
+                                if gpio_sensor["payload"]["data"]["value"] == "active":                                   
+                                    self._binary_sensors[supported_binary_sensor] = True
+                                else:
+                                    self._binary_sensors[supported_binary_sensor] = False
+        else:
+            _LOGGER.error("ROMY function async_update -> async_query response: %s", response)
 
