@@ -163,6 +163,13 @@ class RomyRobot():
         """Return the status of the vacuum cleaner."""
         return self._status
 
+    async def get_protocol_version(self, **kwargs: Any) -> str:
+        """Get http api version."""
+        ret, json_resp = await self.romy_async_query(f"get/protocol_version")
+        version = json.loads(json_resp)
+        return f"{version['version_major']}.{version['version_minor']}.{version['patch_level']}"
+
+
     async def async_clean_start_or_continue(self, **kwargs: Any) -> bool:
         """Start or countinue cleaning."""
         _LOGGER.debug("async_clean_start_or_continue")
