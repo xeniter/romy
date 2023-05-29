@@ -44,7 +44,7 @@ class RomyRobot():
         self._battery_level : None | int = None
         self._fan_speed : int = 0
         self._status : None | str = None
-        self._binary_sensors : Dict[str, bool] = {}
+        self._binary_sensors : dict[str, bool] = {}
 
 
     async def _init(self):
@@ -185,7 +185,7 @@ class RomyRobot():
         return self._status
 
     @property
-    def binary_sensors(self) -> list[str]:
+    def binary_sensors(self) -> dict[str, bool]:
         """Return the available sensors of your ROMY."""
         return self._binary_sensors
 
