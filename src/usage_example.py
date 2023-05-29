@@ -45,8 +45,20 @@ async def main():
     print(f"name: {myROMY.name}")
     print(f"port: {myROMY.port}")
     print(f"api version: {await myROMY.get_protocol_version()}")
-    print(f"binary_sensors keys: {myROMY.binary_sensors.keys()}")
-    print(f"binary_sensors: {myROMY.binary_sensors}")
+    print("")
+    
+    print("sensors:")
+    print(f"{myROMY.sensors}")
+    print("")
+
+    print("binary sensors:")
+    print(f"{myROMY.binary_sensors}")
+    print("")
+
+    print("adc sensors:")
+    print(f"{myROMY.adc_sensors}")
+    print("")
+    
 
 
 

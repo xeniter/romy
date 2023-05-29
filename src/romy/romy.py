@@ -18,6 +18,7 @@ from typing import Any
 _LOGGER = logging.getLogger(__name__)
 
 supported_binary_sensors = ["dustbin", "dock", "water_tank", "water_tank_empty"]
+supported_adc_sensors = ["dustbin_sensor"]
 
 async def create_romy(host: str, password:str):
     romy = RomyRobot(host, password)
@@ -44,7 +45,10 @@ class RomyRobot():
         self._battery_level : None | int = None
         self._fan_speed : int = 0
         self._status : None | str = None
+
+        self._sensors : dict[str, bool] = {}
         self._binary_sensors : dict[str, bool] = {}
+        self._adc_sensors : dict[str, bool] = {}
 
 
     async def _init(self):
@@ -109,9 +113,11 @@ class RomyRobot():
             status = json.loads(response)
             hal_status = status["hal_status"]
             for sensor in hal_status["sensor_list"]:
-                for supported_binary_sensor in supported_binary_sensors:
-                    if sensor["is_registered"] == 1 and sensor["device_descriptor"] == supported_binary_sensor:
-                        self._binary_sensors[supported_binary_sensor] = False
+                if sensor["is_registered"] == 1:
+                    if sensor["device_descriptor"] in supported_binary_sensors:
+                        self._binary_sensors[sensor["device_descriptor"]] = False
+                    if sensor["device_descriptor"] in supported_adc_sensors:
+                        self._adc_sensors[sensor["device_descriptor"]] = 0
         else:
             _LOGGER.error("Error fetching sensor status resp: %s", response)
         
@@ -184,10 +190,22 @@ class RomyRobot():
         """Return the status of your ROMY."""
         return self._status
 
+
+    @property
+    def sensors(self) -> dict[str, bool]:
+        """Return the available sensors of your ROMY."""
+        return self._sensors
+
     @property
     def binary_sensors(self) -> dict[str, bool]:
         """Return the available sensors of your ROMY."""
         return self._binary_sensors
+
+    @property
+    def adc_sensors(self) -> dict[str, bool]:
+        """Return the available sensors of your ROMY."""
+        return self._adc_sensors
+
 
     async def get_protocol_version(self, **kwargs: Any) -> str:
         """Get http api version."""
@@ -247,10 +265,23 @@ class RomyRobot():
             _LOGGER.error("FOMY function async_update -> async_query response: %s", response)
 
         # update sensor values
+        self._sensors["battery_level"] = self._battery_level
+
+        ret, response = await self.romy_async_query("get/wifi_status")
+        if ret:
+            wifi_status = json.loads(response)
+            self._sensors["rssi"] = wifi_status["rssi"]
+            
+        else:
+            _LOGGER.error("ROMY function async_update -> async_query response: %s", response)
+
+        # update sensor values
         ret, response = await self.romy_async_query("get/sensor_values")
         if ret:
             sensor_values = json.loads(response)
             for sensor in sensor_values["sensor_data"]:
+
+                # binary sensors
                 if sensor["device_type"] == "gpio":
                     gpio_sensors = sensor["sensor_data"]
                     for gpio_sensor in gpio_sensors:
@@ -260,6 +291,15 @@ class RomyRobot():
                                     self._binary_sensors[supported_binary_sensor] = True
                                 else:
                                     self._binary_sensors[supported_binary_sensor] = False
+                
+                # adc sensors
+                if sensor["device_type"] == "adc":
+                    adc_sensors = sensor["sensor_data"]
+                    for adc_sensor in adc_sensors:
+                        for supported_adc_sensor in supported_adc_sensors:
+                            if adc_sensor["device_descriptor"] == supported_adc_sensor:
+                                self._adc_sensors[supported_adc_sensor] = adc_sensor["payload"]["data"]["values"][0]
+
         else:
             _LOGGER.error("ROMY function async_update -> async_query response: %s", response)
 
