@@ -116,14 +116,14 @@ class RomyRobot():
                 if sensor["is_registered"] == 1:
                     if sensor["device_descriptor"] in supported_binary_sensors:
                         self._binary_sensors[sensor["device_descriptor"]] = False
-                    if sensor["device_descriptor"] in supported_adc_sensors:
-                        self._adc_sensors[sensor["device_descriptor"]] = 0
         else:
             _LOGGER.error("Error fetching sensor status resp: %s", response)
-        
-        _LOGGER.info("Your ROMY offers following sensors: %s", self._binary_sensors)
-
+                
         await self.async_update()
+
+        _LOGGER.info("Your ROMY offers following sensors: %s", self._sensors)
+        _LOGGER.info("Your ROMY offers following binary sensors: %s", self._binary_sensors)        
+        _LOGGER.info("Your ROMY offers following adc sensors: %s", self._adc_sensors)
 
         return self
 
