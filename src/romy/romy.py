@@ -83,7 +83,7 @@ class RomyRobot():
                     _LOGGER.error("Couldn't unlock ROMY's http interface!")
 
 
-        # get robot product name
+        # get robot name given by user
         ret, response = await self.romy_async_query("get/robot_name")
         if ret:
             json_response = json.loads(response)
@@ -122,7 +122,6 @@ class RomyRobot():
                         self._binary_sensors[sensor["device_descriptor"]] = False
         else:
             _LOGGER.error("Error fetching sensor status resp: %s", response)
-            self._initialized = False
                 
         await self.async_update()
 
