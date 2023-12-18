@@ -87,8 +87,9 @@ class RomyRobot():
         if ret:
             json_response = json.loads(response)
             self._name = json_response["name"]
-        else:
+        else:            
             _LOGGER.error("Couldn't fetch your ROMY's name!")
+            self._initialized = False
 
         # get robot infos
         ret, response = await self.romy_async_query("get/robot_id")
@@ -99,6 +100,7 @@ class RomyRobot():
             self._firmware = json_response["firmware"]
         else:
             _LOGGER.error("Error fetching get/robot_id: %s", response)
+            self._initialized = False
 
 
         if self._initialized:
@@ -118,6 +120,7 @@ class RomyRobot():
                         self._binary_sensors[sensor["device_descriptor"]] = False
         else:
             _LOGGER.error("Error fetching sensor status resp: %s", response)
+            self._initialized = False
                 
         await self.async_update()
 
