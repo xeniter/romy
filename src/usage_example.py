@@ -39,10 +39,13 @@ async def main():
 
     print(f"battery_level: {myROMY.battery_level}")
     print(f"status: {myROMY.status}")
-    print(f"name: {myROMY.name}")
 
-    await myROMY.set_name("NiosHD")
-    print(f"name: {myROMY.name}")
+    print(f"robots product name: {myROMY.name}")    
+    new_name="NiosHD"
+    print(f"robots name given by the user: {myROMY.user_name}")
+    print(f"setting robots user_name to: {new_name}")
+    await myROMY.set_user_name(new_name)
+    print(f"robots name given by the user: {myROMY.user_name}")
 
     print(f"port: {myROMY.port}")
 

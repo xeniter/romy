@@ -37,7 +37,8 @@ class RomyRobot():
         self._local_http_interface_is_locked : bool = False
         self._initialized : bool = False
 
-        self._name : str = ""
+        self._name : str = ""       # robots product_name
+        self._user_name : str = ""  # robots name given py the user
         self._unique_id : str = ""
         self._model : str = ""
         self._firmware : str = ""
@@ -82,11 +83,11 @@ class RomyRobot():
                     _LOGGER.error("Couldn't unlock ROMY's http interface!")
 
 
-        # get robot name
+        # get robot product name
         ret, response = await self.romy_async_query("get/robot_name")
         if ret:
             json_response = json.loads(response)
-            self._name = json_response["name"]
+            self._user_name = json_response["name"]
         else:            
             _LOGGER.error("Couldn't fetch your ROMY's name!")
             self._initialized = False
@@ -95,9 +96,10 @@ class RomyRobot():
         ret, response = await self.romy_async_query("get/robot_id")
         if ret:
             json_response = json.loads(response)
+            self._name = json_response["name"]              # intern product name
             self._unique_id = json_response["unique_id"]
             self._model = json_response["model"]
-            self._firmware = json_response["firmware"]
+            self._firmware = json_response["firmware"]            
         else:
             _LOGGER.error("Error fetching get/robot_id: %s", response)
             self._initialized = False
@@ -147,13 +149,18 @@ class RomyRobot():
 
     @property
     def name(self) -> str:
-        """Return the name of your ROMY."""
+        """Return the product name of your ROMY."""
         return self._name
 
-    async def set_name(self, new_name) -> None:
+    @property
+    def user_name(self) -> str:
+        """Return robots name given by the user"""
+        return self._user_name
+
+    async def set_user_name(self, new_name) -> None:
         ret, response = await self.romy_async_query(f"set/robot_name?name={new_name}")
         if ret:
-            self._name = new_name
+            self._user_name = new_name
         else:
             _LOGGER.error("Error setting ROMY's name, response: %s", response)
 
