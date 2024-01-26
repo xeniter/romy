@@ -6,9 +6,6 @@ https://www.romyrobot.com/en-AT/romy-robot-interface-protocol
 
 import json
 import logging
-import aiohttp
-import asyncio
-import requests
 
 from .utils import async_query, async_query_with_http_status
 
