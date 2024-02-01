@@ -2,9 +2,14 @@
 
 import asyncio
 import logging
+import sys
 
 import aiohttp
-import async_timeout
+
+if sys.version_info >= (3, 11):
+    async_timeout = asyncio.timeout
+else:
+    from async_timeout import timeout as async_timeout
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,7 +31,7 @@ async def _async_query(host: str, port: int, command: str, timeout: int) -> tupl
     try:
         #websession = async_get_clientsession(hass)
         async with aiohttp.ClientSession() as websession:
-            with async_timeout.timeout(timeout):
+            async with async_timeout(timeout):
                 url = f"http://{host}:{port}/{command}"
                 _LOGGER.debug("requesting url: %s", url)
                 webresponse = await websession.get(url)
