@@ -11,6 +11,10 @@ authors = [
 description = "Python program and library to control Wi-Fi enabled ROMY vacuum cleaners"
 readme = "README.md"
 requires-python = ">=3.10"
+dependencies    = [
+    "aiohttp>=3.8.0",
+    "async-timeout>=4.0;python_version<'3.11'",
+]
 license = {file = "LICENSE.md"}
 classifiers = [
     "Programming Language :: Python :: 3",
