@@ -105,26 +105,12 @@ class RomyRobot():
         if self._initialized:
             _LOGGER.info("ROMY is reachable under %s", self._host)
         else:
-            _LOGGER.error("ROMY is not reachable under %s", self._host)
-
-        
-        # fetch information which binary sensors are present and add it in case
-        ret, response = await self.romy_async_query("get/sensor_status")
-        if ret:
-            status = json.loads(response)
-            hal_status = status["hal_status"]
-            for sensor in hal_status["sensor_list"]:
-                if sensor["is_registered"] == 1:
-                    if sensor["device_descriptor"] in supported_binary_sensors:
-                        self._binary_sensors[sensor["device_descriptor"]] = False
-        else:
-            _LOGGER.error("Error fetching sensor status resp: %s", response)
+            _LOGGER.error("ROMY is not reachable under %s", self._host)        
                 
         await self.async_update()
 
         _LOGGER.info("Your ROMY offers following sensors: %s", self._sensors)
-        _LOGGER.info("Your ROMY offers following binary sensors: %s", self._binary_sensors)        
-        _LOGGER.info("Your ROMY offers following adc sensors: %s", self._adc_sensors)
+        _LOGGER.info("Your ROMY offers following binary sensors: %s", self._binary_sensors)                
 
         return self
 
@@ -270,14 +256,13 @@ class RomyRobot():
         else:
             _LOGGER.error("FOMY function async_update -> async_query response: %s", response)
 
-        # update sensor values
+        # add/update battery and rssi to sensor values
         self._sensors["battery_level"] = self._battery_level
 
         ret, response = await self.romy_async_query("get/wifi_status")
         if ret:
             wifi_status = json.loads(response)
-            self._sensors["rssi"] = wifi_status["rssi"]
-            
+            self._sensors["rssi"] = wifi_status["rssi"]            
         else:
             _LOGGER.error("ROMY function async_update -> async_query response: %s", response)
 
@@ -298,14 +283,26 @@ class RomyRobot():
                                 else:
                                     self._binary_sensors[supported_binary_sensor] = False
                 
-                # adc sensors
+                # add adc sensors to sensors
                 if sensor["device_type"] == "adc":
                     adc_sensors = sensor["sensor_data"]
                     for adc_sensor in adc_sensors:
                         for supported_adc_sensor in supported_adc_sensors:
                             if adc_sensor["device_descriptor"] == supported_adc_sensor:
-                                self._adc_sensors[supported_adc_sensor] = adc_sensor["payload"]["data"]["values"][0]
-
+                                self._sensors[supported_adc_sensor] = adc_sensor["payload"]["data"]["values"][0]
         else:
             _LOGGER.error("ROMY function async_update -> async_query response: %s", response)
+
+        # add/update statistics to sensor values
+        ret, response = await self.romy_async_query("get/statistics")
+        if ret:
+            statistics = json.loads(response)
+            self._sensors["total_distance_driven"] = round(statistics["total_distance_driven"] / 128, 2) # to get in meter (format is 0.25.7)
+            self._sensors["total_cleaning_time"] = round(statistics["total_cleaning_time"] / 64, 2) # to get in hours (format is 0.26.6)
+            self._sensors["total_area_cleaned"] = round(statistics["total_area_cleaned"] / 64, 2) # to get in square meters (format is 0.26.6)
+            self._sensors["total_number_of_cleaning_runs"] = statistics["total_number_of_cleaning_runs"]            
+        else:
+            _LOGGER.error("ROMY function async_update -> async_query response: %s", response)
+
+
 
