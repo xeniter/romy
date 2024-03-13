@@ -44,10 +44,8 @@ class RomyRobot():
         self._fan_speed : int = 0
         self._status : None | str = None
 
-        self._sensors : dict[str, bool] = {}
+        self._sensors : dict[str, int] = {}
         self._binary_sensors : dict[str, bool] = {}
-        self._adc_sensors : dict[str, bool] = {}
-
 
     async def _init(self):
 
@@ -184,7 +182,7 @@ class RomyRobot():
 
 
     @property
-    def sensors(self) -> dict[str, bool]:
+    def sensors(self) -> dict[str, int]:
         """Return the available sensors of your ROMY."""
         return self._sensors
 
@@ -192,12 +190,6 @@ class RomyRobot():
     def binary_sensors(self) -> dict[str, bool]:
         """Return the available sensors of your ROMY."""
         return self._binary_sensors
-
-    @property
-    def adc_sensors(self) -> dict[str, bool]:
-        """Return the available sensors of your ROMY."""
-        return self._adc_sensors
-
 
     async def get_protocol_version(self, **kwargs: Any) -> str:
         """Get http api version."""
