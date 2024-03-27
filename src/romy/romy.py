@@ -47,6 +47,8 @@ class RomyRobot():
         self._sensors : dict[str, int] = {}
         self._binary_sensors : dict[str, bool] = {}
 
+        self.romy_async_query_error_log_level : int = logging.ERROR
+
     async def _init(self):
 
         self._initialized = False
@@ -84,7 +86,6 @@ class RomyRobot():
             json_response = json.loads(response)
             self._user_name = json_response["name"]
         else:            
-            _LOGGER.error("Couldn't fetch your ROMY's name!")
             self._initialized = False
 
         # get robot infos
@@ -96,7 +97,6 @@ class RomyRobot():
             self._model = json_response["model"]
             self._firmware = json_response["firmware"]            
         else:
-            _LOGGER.error("Error fetching get/robot_id: %s", response)
             self._initialized = False
 
 
@@ -114,18 +114,31 @@ class RomyRobot():
 
     async def romy_async_query(self, command: str) -> tuple[bool, str]:
         """Send a http query."""
-        # TODO: unlock robot again if you get here forbidden
-        return await async_query(self._host, self._port, command)
+        ret, response = await async_query(self._host, self._port, command, error_log_level = self.romy_async_query_error_log_level)
+        
+        _LOGGER.debug("xx romy_async_query")
+
+        # log only first error with log level error        
+        if ret:
+            _LOGGER.debug("xx true")
+            self.romy_async_query_error_log_level = logging.ERROR
+        else:
+            _LOGGER.debug("xx false")
+            self.romy_async_query_error_log_level = logging.DEBUG
+            # extend debug message in case of http response was not okay
+            _LOGGER.debug("romy_async_query with command %s returned response: %s" % (command, response))
+
+        return (ret,response)
 
     @property
     def is_initialized(self) -> None | bool:
         """Return true if ROMY is initialized."""
         return self._initialized
+
     @property
     def is_unlocked(self) -> None | bool:
         """Return true if ROMY's http interface is unlocked."""
         return not self._local_http_interface_is_locked        
-
 
     @property
     def name(self) -> str:
@@ -141,8 +154,6 @@ class RomyRobot():
         ret, response = await self.romy_async_query(f"set/robot_name?name={new_name}")
         if ret:
             self._user_name = new_name
-        else:
-            _LOGGER.error("Error setting ROMY's name, response: %s", response)
 
     @property
     def port(self) -> int:
@@ -193,9 +204,14 @@ class RomyRobot():
 
     async def get_protocol_version(self, **kwargs: Any) -> str:
         """Get http api version."""
+        version=""
         ret, json_resp = await self.romy_async_query(f"get/protocol_version")
-        version = json.loads(json_resp)
-        return f"{version['version_major']}.{version['version_minor']}.{version['patch_level']}"
+        if ret:
+            json_version = json.loads(json_resp)
+            version= f"{json_version['version_major']}.{json_version['version_minor']}.{json_version['patch_level']}"
+        else:
+            _LOGGER.error("Couldn't fetch protocol version!")
+        return version
 
 
     async def async_clean_start_or_continue(self, **kwargs: Any) -> bool:
@@ -226,8 +242,6 @@ class RomyRobot():
         ret, response = await self.romy_async_query(f"set/switch_cleaning_parameter_set?cleaning_parameter_set={fan_speed}")
         if ret:
             self._fan_speed = fan_speed
-        else:
-            _LOGGER.error(" async_set_fan_speed -> async_query response: %s", response)
 
     async def async_update(self) -> None:
         """Fetch state from the device."""
@@ -238,15 +252,11 @@ class RomyRobot():
             status = json.loads(response)
             self._status = status["mode"]
             self._battery_level = status["battery_level"]
-        else:
-            _LOGGER.error("ROMY function async_update -> async_query response: %s", response)
 
         ret, response = await self.romy_async_query("get/cleaning_parameter_set")
         if ret:
             status = json.loads(response)
             self._fan_speed = status["cleaning_parameter_set"]
-        else:
-            _LOGGER.error("FOMY function async_update -> async_query response: %s", response)
 
         # add/update battery and rssi to sensor values
         self._sensors["battery_level"] = self._battery_level
@@ -255,8 +265,6 @@ class RomyRobot():
         if ret:
             wifi_status = json.loads(response)
             self._sensors["rssi"] = wifi_status["rssi"]            
-        else:
-            _LOGGER.error("ROMY function async_update -> async_query response: %s", response)
 
         # update sensor values
         ret, response = await self.romy_async_query("get/sensor_values")
@@ -282,8 +290,6 @@ class RomyRobot():
                         for supported_adc_sensor in supported_adc_sensors:
                             if adc_sensor["device_descriptor"] == supported_adc_sensor:
                                 self._sensors[supported_adc_sensor] = adc_sensor["payload"]["data"]["values"][0]
-        else:
-            _LOGGER.error("ROMY function async_update -> async_query response: %s", response)
 
         # add/update statistics to sensor values
         ret, response = await self.romy_async_query("get/statistics")
@@ -292,9 +298,4 @@ class RomyRobot():
             self._sensors["total_distance_driven"] = round(statistics["total_distance_driven"] / 128, 2) # to get in meter (format is 0.25.7)
             self._sensors["total_cleaning_time"] = round(statistics["total_cleaning_time"] / 64, 2) # to get in hours (format is 0.26.6)
             self._sensors["total_area_cleaned"] = round(statistics["total_area_cleaned"] / 64, 2) # to get in square meters (format is 0.26.6)
-            self._sensors["total_number_of_cleaning_runs"] = statistics["total_number_of_cleaning_runs"]            
-        else:
-            _LOGGER.error("ROMY function async_update -> async_query response: %s", response)
-
-
-
+            self._sensors["total_number_of_cleaning_runs"] = statistics["total_number_of_cleaning_runs"]
